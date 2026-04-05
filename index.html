@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>映画日記 — Movie Log</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050505;
+    --surface: #0f0f0f;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --muted: #666;
+    --accent: #e8e8e8;
+    --tag-bg: rgba(255,255,255,0.08);
+    --tag-border: rgba(255,255,255,0.12);
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    --font-serif: Georgia, 'Times New Roman', serif;
+    --radius: 6px;
+    --nav-h: 68px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  #app {
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ── Views ── */
+  .view { display: none; flex-direction: column; min-height: 100vh; padding-bottom: calc(var(--nav-h) + var(--safe-bottom)); }
+  .view.active { display: flex; }
+
+  /* ── Top bar ── */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar h1 { font-size: 17px; font-weight: 600; letter-spacing: 0.04em; }
+  .topbar .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .topbar .logo span { font-size: 11px; font-weight: 400; letter-spacing: 0.12em; color: var(--muted); margin-left: 8px; text-transform: uppercase; vertical-align: middle; }
+  .btn-icon { background: none; border: none; color: var(--text); cursor: pointer; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.15s; }
+  .btn-icon:hover { background: var(--surface2); }
+  .btn-icon svg { width: 22px; height: 22px; }
+
+  /* ── Bottom Nav ── */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    height: calc(var(--nav-h) + var(--safe-bottom));
+    background: rgba(5,5,5,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 10px;
+    z-index: 20;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-sans);
+    transition: color 0.15s;
+  }
+  .nav-item.active { color: var(--text); }
+  .nav-item svg { width: 22px; height: 22px; }
+
+  /* ── Poster ── */
+  .poster-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2/3;
+    background: var(--surface);
+    overflow: hidden;
+    border-radius: var(--radius);
+  }
+  .poster-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .poster-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #141414 0%, #0a0a0a 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .poster-placeholder::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+  .poster-placeholder svg { width: 32px; height: 32px; color: #2a2a2a; position: relative; z-index: 1; }
+  .poster-placeholder span { font-size: 10px; letter-spacing: 0.2em; color: #2a2a2a; margin-top: 8px; text-transform: uppercase; position: relative; z-index: 1; }
+
+  /* ── Feed ── */
+  .recent-section { padding: 20px 20px 0; }
+  .section-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .recent-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+  .recent-scroll::-webkit-scrollbar { display: none; }
+  .recent-card { flex: 0 0 120px; cursor: pointer; }
+  .recent-card .poster-wrap { border-radius: 4px; }
+  .recent-card-title { font-size: 12px; margin-top: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+  .recent-card-meta { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+  .genre-filter { padding: 16px 20px 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+  .genre-filter::-webkit-scrollbar { display: none; }
+  .genre-chip {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    border-radius: 99px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-sans);
+  }
+  .genre-chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .entries-grid { padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .entry-card { cursor: pointer; }
+  .entry-card .poster-wrap { border-radius: 4px; }
+  .entry-card-title { font-size: 13px; margin-top: 8px; line-height: 1.3; font-weight: 500; }
+  .entry-card-meta { font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 0.06em; text-transform: uppercase; display: flex; justify-content: space-between; }
+  .empty-state { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+  /* ── Editor ── */
+  .editor-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+  .field-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block; }
+  .field-input {
+    width: 100%; background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .field-input:focus { border-color: #444; }
+  .field-input::placeholder { color: var(--muted); }
+  textarea.field-input { resize: none; min-height: 80px; }
+
+  .poster-preview-wrap { width: 120px; aspect-ratio: 2/3; border-radius: 4px; overflow: hidden; }
+
+  .genre-select { display: flex; flex-wrap: wrap; gap: 8px; }
+  .genre-opt {
+    padding: 7px 13px;
+    border-radius: 99px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--tag-bg);
+    border: 1px solid var(--tag-border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-sans);
+  }
+  .genre-opt.selected { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-label { font-size: 14px; color: var(--text); }
+  .toggle-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .toggle-switch {
+    width: 50px; height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: #fff; }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 20px; height: 20px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: left 0.2s, background 0.2s;
+  }
+  .toggle-switch.on::after { left: 25px; background: var(--bg); }
+
+  /* ── Block Editor ── */
+  .block-editor { display: flex; flex-direction: column; gap: 2px; }
+  .block-row { position: relative; display: flex; gap: 8px; align-items: flex-start; }
+  .block-controls { display: flex; flex-direction: column; gap: 3px; padding-top: 10px; flex-shrink: 0; }
+  .block-ctrl-btn {
+    width: 22px; height: 22px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    transition: color 0.1s, border-color 0.1s;
+    font-family: var(--font-sans);
+  }
+  .block-ctrl-btn:hover { color: var(--text); border-color: #444; }
+  .block-ctrl-btn.danger:hover { color: #ff6b6b; border-color: #ff6b6b; }
+  .block-field { flex: 1; }
+  .block-type-bar { display: flex; gap: 6px; margin-bottom: 6px; }
+  .block-type-btn {
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    font-family: var(--font-sans);
+  }
+  .block-type-btn.active { background: var(--surface2); color: var(--text); border-color: #444; }
+  .block-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    font-family: var(--font-serif);
+    line-height: 1.5;
+    padding: 6px 0;
+    -webkit-appearance: none;
+    resize: none;
+  }
+  .block-input::placeholder { color: #333; }
+  .block-input.type-heading.size-large  { font-size: 22px; font-weight: 700; }
+  .block-input.type-heading.size-medium { font-size: 18px; font-weight: 700; }
+  .block-input.type-heading.size-small  { font-size: 15px; font-weight: 700; }
+  .block-input.type-body.size-large     { font-size: 17px; }
+  .block-input.type-body.size-medium    { font-size: 15px; }
+  .block-input.type-body.size-small     { font-size: 13px; }
+
+  .add-block-btn {
+    width: 100%; margin-top: 10px;
+    padding: 10px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    font-family: var(--font-sans);
+  }
+  .add-block-btn:hover { border-color: #444; color: var(--text); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    font-family: var(--font-sans);
+  }
+  .btn-primary:active { opacity: 0.75; }
+  .btn-danger {
+    width: 100%;
+    padding: 13px;
+    background: none;
+    color: #ff6b6b;
+    border: 1px solid rgba(255,107,107,0.3);
+    border-radius: var(--radius);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: var(--font-sans);
+  }
+  .btn-danger:hover { background: rgba(255,107,107,0.08); }
+
+  /* ── Public Log View ── */
+  #view-log { padding-bottom: 0; }
+  .log-hero { position: relative; width: 100%; aspect-ratio: 3/4; overflow: hidden; }
+  .log-hero img { width: 100%; height: 100%; object-fit: cover; }
+  .log-hero-placeholder { width: 100%; height: 100%; background: linear-gradient(180deg, #111 0%, #050505 100%); }
+  .log-hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(5,5,5,1) 0%, rgba(5,5,5,0.3) 50%, transparent 100%);
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 24px 20px;
+  }
+  .log-genre-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 99px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 10px;
+    width: fit-content;
+  }
+  .log-title { font-size: 28px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; }
+  .log-date { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 6px; letter-spacing: 0.06em; }
+  .log-back {
+    position: absolute; top: 16px; left: 16px;
+    width: 36px; height: 36px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .log-back svg { width: 18px; height: 18px; }
+  .log-share {
+    position: absolute; top: 16px; right: 16px;
+    padding: 8px 14px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 99px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: var(--font-sans);
+    transition: background 0.15s;
+  }
+  .log-share:hover { background: rgba(255,255,255,0.12); }
+
+  .log-content { padding: 28px 20px 48px; }
+  .log-block { margin-bottom: 16px; }
+  .log-block.type-heading.size-large  { font-size: 22px; font-weight: 700; font-family: var(--font-serif); line-height: 1.3; }
+  .log-block.type-heading.size-medium { font-size: 18px; font-weight: 700; font-family: var(--font-serif); line-height: 1.35; }
+  .log-block.type-heading.size-small  { font-size: 15px; font-weight: 700; font-family: var(--font-serif); line-height: 1.4; }
+  .log-block.type-body.size-large     { font-size: 17px; line-height: 1.75; color: rgba(240,240,240,0.85); font-family: var(--font-serif); }
+  .log-block.type-body.size-medium    { font-size: 15px; line-height: 1.8; color: rgba(240,240,240,0.75); font-family: var(--font-serif); }
+  .log-block.type-body.size-small     { font-size: 13px; line-height: 1.8; color: rgba(240,240,240,0.55); font-family: var(--font-serif); }
+
+  /* ── Stats ── */
+  .stats-body { padding: 24px 20px; flex: 1; }
+  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat-card { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; }
+  .stat-num { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; }
+  .stat-lbl { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+  .genre-stat { margin-bottom: 14px; }
+  .genre-stat-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .genre-stat-name { font-size: 13px; }
+  .genre-stat-count { font-size: 12px; color: var(--muted); }
+  .genre-bar-track { height: 2px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .genre-bar-fill { height: 100%; background: var(--text); border-radius: 99px; transition: width 0.4s ease; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: calc(var(--nav-h) + 16px + var(--safe-bottom));
+    left: 50%; transform: translateX(-50%);
+    background: var(--text); color: var(--bg);
+    padding: 10px 20px; border-radius: 99px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; z-index: 100;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Date input fix ── */
+  input[type="date"] { color-scheme: dark; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 0; background: transparent; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== VIEW: FEED ===== -->
+  <div id="view-feed" class="view active">
+    <div class="topbar">
+      <div class="logo">映画日記<span>Movie Log</span></div>
+    </div>
+
+    <div class="recent-section">
+      <div class="section-label">Recently Logged</div>
+      <div class="recent-scroll" id="recent-scroll"></div>
+    </div>
+
+    <div class="genre-filter" id="genre-filter"></div>
+
+    <div class="entries-grid" id="entries-grid"></div>
+  </div>
+
+  <!-- ===== VIEW: EDITOR ===== -->
+  <div id="view-editor" class="view">
+    <div class="topbar">
+      <button class="btn-icon" onclick="navigate('feed')" aria-label="Back">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <h1 id="editor-title-bar">New Entry</h1>
+      <div style="width:34px"></div>
+    </div>
+
+    <div class="editor-body">
+
+      <!-- Poster -->
+      <div>
+        <label class="field-label">Poster Image</label>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div class="poster-preview-wrap">
+            <div class="poster-wrap" id="poster-preview-wrap">
+              <div class="poster-placeholder">
+                <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>No Poster</span>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+            <input class="field-input" type="url" id="poster-url" placeholder="https://image-url.jpg" oninput="updatePosterPreview()">
+            <label style="display:block;">
+              <span class="field-label" style="margin-bottom:4px;">Or upload file</span>
+              <input type="file" accept="image/*" style="display:none;" id="poster-file-input" onchange="handlePosterFile(this)">
+              <button class="btn-icon" style="border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);width:100%;font-family:var(--font-sans);" onclick="document.getElementById('poster-file-input').click()">Choose File</button>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div>
+        <label class="field-label">Movie Title</label>
+        <input class="field-input" type="text" id="movie-title" placeholder="Enter title..." autocomplete="off">
+      </div>
+
+      <!-- Genre -->
+      <div>
+        <label class="field-label">Genre</label>
+        <div class="genre-select" id="genre-select"></div>
+      </div>
+
+      <!-- Watch Date -->
+      <div>
+        <label class="field-label">Watched</label>
+        <input class="field-input" type="date" id="watched-date">
+      </div>
+
+      <!-- Rich Text Editor -->
+      <div>
+        <label class="field-label">Notes</label>
+        <div class="block-editor" id="block-editor"></div>
+        <button class="add-block-btn" onclick="addBlock()">+ Add Block</button>
+      </div>
+
+      <!-- Public Toggle -->
+      <div>
+        <label class="field-label">Visibility</label>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Public</div>
+            <div class="toggle-desc" id="toggle-desc">Anyone with the link can view</div>
+          </div>
+          <div class="toggle-switch" id="public-toggle" onclick="togglePublic()"></div>
+        </div>
+      </div>
+
+      <!-- Save / Delete -->
+      <button class="btn-primary" onclick="saveEntry()">Save Entry</button>
+      <div id="delete-btn-wrap" style="display:none;">
+        <button class="btn-danger" onclick="deleteEntry()">Delete Entry</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== VIEW: LOG (Public) ===== -->
+  <div id="view-log" class="view">
+    <div style="position:relative;">
+      <button class="log-back" onclick="history.back(); navigate('feed');" id="log-back-btn">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="log-share" onclick="copyLogLink()" id="log-share-btn">Copy Link</button>
+      <div class="log-hero" id="log-hero"></div>
+    </div>
+    <div class="log-content" id="log-content"></div>
+  </div>
+
+  <!-- ===== VIEW: STATS ===== -->
+  <div id="view-stats" class="view">
+    <div class="topbar">
+      <h1>Stats</h1>
+    </div>
+    <div class="stats-body" id="stats-body"></div>
+  </div>
+
+  <!-- ===== BOTTOM NAV ===== -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-feed" onclick="navigate('feed')">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Feed
+    </button>
+    <button class="nav-item" id="nav-new" onclick="openEditor(null)">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 8v8M8 12h8"/></svg>
+      Log
+    </button>
+    <button class="nav-item" id="nav-stats" onclick="navigate('stats')">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 20V14M9 20V8M14 20V12M19 20V4"/></svg>
+      Stats
+    </button>
+  </nav>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Data Layer ───────────────────────────────────────────────
+const STORAGE_KEY = 'movie_log_entries';
+
+function loadEntries() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function getEntry(id) {
+  return loadEntries().find(e => e.id === id);
+}
+
+function getEntryBySlug(slug) {
+  return loadEntries().find(e => e.slug === slug);
+}
+
+function upsertEntry(entry) {
+  const entries = loadEntries();
+  const idx = entries.findIndex(e => e.id === entry.id);
+  if (idx >= 0) { entries[idx] = entry; }
+  else { entries.unshift(entry); }
+  saveEntries(entries);
+}
+
+function removeEntry(id) {
+  saveEntries(loadEntries().filter(e => e.id !== id));
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function generateSlug(title) {
+  return title.toLowerCase()
+    .replace(/[^a-z0-9\s\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]/g, '')
+    .trim().replace(/\s+/g, '-').slice(0, 50) + '-' + generateId().slice(-5);
+}
+
+// ─── State ─────────────────────────────────────────────────────
+const GENRES = ['Violence','Drama','Art House','Documentary','Comedy','Horror','Sci-Fi','Romance','Thriller','Animation','Other'];
+let currentView = 'feed';
+let activeGenre = 'ALL';
+let editorId = null;
+let blocks = [];
+let isPublic = false;
+let posterDataUrl = null;
+
+// ─── Toast ─────────────────────────────────────────────────────
+function showToast(msg, duration = 2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ─── Navigation ────────────────────────────────────────────────
+function navigate(view, param) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.bottom-nav').style.display = view === 'log' ? 'none' : '';
+  currentView = view;
+
+  const viewEl = document.getElementById('view-' + view);
+  if (viewEl) viewEl.classList.add('active');
+  const navEl = document.getElementById('nav-' + view) || document.getElementById('nav-feed');
+  if (navEl && view !== 'log') navEl.classList.add('active');
+
+  if (view === 'feed')  renderFeed();
+  if (view === 'stats') renderStats();
+  if (view === 'log')   renderLog(param);
+
+  window.scrollTo(0, 0);
+}
+
+// ─── Feed ───────────────────────────────────────────────────────
+function renderFeed() {
+  renderRecent();
+  renderGenreFilter();
+  renderGrid();
+}
+
+function renderRecent() {
+  const el = document.getElementById('recent-scroll');
+  const entries = loadEntries().slice(0, 8);
+  el.innerHTML = entries.map(e => `
+    <div class="recent-card" onclick="navigate('log','${e.slug}')">
+      <div class="poster-wrap">${posterHtml(e.posterUrl, 120)}</div>
+      <div class="recent-card-title">${esc(e.title)}</div>
+      <div class="recent-card-meta">${esc(e.genre||'')}</div>
+    </div>
+  `).join('') || '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No entries yet.</div>';
+}
+
+function renderGenreFilter() {
+  const el = document.getElementById('genre-filter');
+  const chips = ['ALL', ...GENRES];
+  el.innerHTML = chips.map(g => `
+    <button class="genre-chip ${activeGenre === g ? 'active':''}" onclick="setGenre('${g}')">${g}</button>
+  `).join('');
+}
+
+function setGenre(g) {
+  activeGenre = g;
+  renderGenreFilter();
+  renderGrid();
+}
+
+function renderGrid() {
+  const el = document.getElementById('entries-grid');
+  let entries = loadEntries();
+  if (activeGenre !== 'ALL') entries = entries.filter(e => e.genre === activeGenre);
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">No films logged yet.<br>Tap Log to add your first entry.</div>';
+    return;
+  }
+  el.innerHTML = entries.map(e => `
+    <div class="entry-card" onclick="navigate('log','${e.slug}')">
+      <div class="poster-wrap">${posterHtml(e.posterUrl)}</div>
+      <div class="entry-card-title">${esc(e.title)}</div>
+      <div class="entry-card-meta">
+        <span>${esc(e.genre||'')}</span>
+        <span>${e.watchedAt ? fmtDate(e.watchedAt) : ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function posterHtml(url, size) {
+  if (url) return `<img src="${esc(url)}" alt="Poster" loading="lazy" onerror="this.style.display='none';this.nextSibling.style.display='flex'"><div class="poster-placeholder" style="display:none;"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
+  return `<div class="poster-placeholder"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>No Poster</span></div>`;
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en', {month:'short', day:'numeric'});
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Editor ─────────────────────────────────────────────────────
+function openEditor(id) {
+  editorId = id;
+  blocks = [];
+  isPublic = false;
+  posterDataUrl = null;
+
+  document.getElementById('editor-title-bar').textContent = id ? 'Edit Entry' : 'New Entry';
+  document.getElementById('delete-btn-wrap').style.display = id ? 'block' : 'none';
+  document.getElementById('poster-url').value = '';
+  document.getElementById('movie-title').value = '';
+  document.getElementById('watched-date').value = '';
+
+  if (id) {
+    const e = getEntry(id);
+    if (e) {
+      document.getElementById('poster-url').value = e.posterUrl || '';
+      document.getElementById('movie-title').value = e.title || '';
+      document.getElementById('watched-date').value = e.watchedAt ? e.watchedAt.slice(0,10) : '';
+      blocks = e.content ? JSON.parse(e.content) : [];
+      isPublic = !!e.isPublic;
+      posterDataUrl = e.posterDataUrl || null;
+    }
+  }
+
+  if (!blocks.length) blocks = [{ type: 'heading', size: 'large', text: '' }];
+
+  renderGenreSelect(id ? (getEntry(id)||{}).genre : null);
+  renderToggle();
+  renderBlockEditor();
+  updatePosterPreview();
+  navigate('editor');
+}
+
+function renderGenreSelect(selected) {
+  const el = document.getElementById('genre-select');
+  el.innerHTML = GENRES.map(g => `
+    <button class="genre-opt ${selected === g ? 'selected':''}" onclick="selectGenre(this,'${g}')">${g}</button>
+  `).join('');
+}
+
+function selectGenre(btn, g) {
+  document.querySelectorAll('.genre-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.toggle('selected');
+  // second click deselects
+  if (!btn.classList.contains('selected')) btn.classList.remove('selected');
+}
+
+function getSelectedGenre() {
+  const btn = document.querySelector('.genre-opt.selected');
+  return btn ? btn.textContent : null;
+}
+
+function togglePublic() {
+  isPublic = !isPublic;
+  renderToggle();
+}
+
+function renderToggle() {
+  const sw = document.getElementById('public-toggle');
+  const desc = document.getElementById('toggle-desc');
+  sw.className = 'toggle-switch' + (isPublic ? ' on' : '');
+  desc.textContent = isPublic ? 'Anyone with the link can view' : 'Private — only you can see this';
+}
+
+function updatePosterPreview() {
+  const url = document.getElementById('poster-url').value.trim() || posterDataUrl;
+  const wrap = document.getElementById('poster-preview-wrap');
+  wrap.innerHTML = url
+    ? `<img src="${esc(url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`
+    : `<div class="poster-placeholder"><svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span>No Poster</span></div>`;
+}
+
+function handlePosterFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    posterDataUrl = e.target.result;
+    document.getElementById('poster-url').value = '';
+    updatePosterPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── Block Editor ────────────────────────────────────────────────
+function renderBlockEditor() {
+  const el = document.getElementById('block-editor');
+  el.innerHTML = blocks.map((b, i) => `
+    <div class="block-row" data-i="${i}">
+      <div class="block-controls">
+        <button class="block-ctrl-btn" onclick="moveBlock(${i},-1)" title="Move up">↑</button>
+        <button class="block-ctrl-btn" onclick="moveBlock(${i},1)" title="Move down">↓</button>
+        <button class="block-ctrl-btn danger" onclick="removeBlock(${i})" title="Delete">✕</button>
+      </div>
+      <div class="block-field">
+        <div class="block-type-bar">
+          <button class="block-type-btn ${b.type==='heading'?'active':''}" onclick="setBlockType(${i},'heading')">H</button>
+          <button class="block-type-btn ${b.type==='body'?'active':''}" onclick="setBlockType(${i},'body')">B</button>
+          <button class="block-type-btn ${b.size==='large'?'active':''}" onclick="setBlockSize(${i},'large')">L</button>
+          <button class="block-type-btn ${b.size==='medium'?'active':''}" onclick="setBlockSize(${i},'medium')">M</button>
+          <button class="block-type-btn ${b.size==='small'?'active':''}" onclick="setBlockSize(${i},'small')">S</button>
+        </div>
+        <textarea class="block-input type-${b.type} size-${b.size}"
+          placeholder="${b.type==='heading'?'Heading...':'Write here...'}"
+          rows="1"
+          oninput="onBlockInput(this,${i})"
+          onkeydown="onBlockKeydown(event,${i})"
+        >${esc(b.text)}</textarea>
+      </div>
+    </div>
+  `).join('');
+
+  // Auto-resize all textareas
+  el.querySelectorAll('textarea').forEach(autoResize);
+}
+
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+function onBlockInput(ta, i) {
+  blocks[i].text = ta.value;
+  autoResize(ta);
+}
+
+function onBlockKeydown(e, i) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    addBlockAt(i + 1);
+  }
+}
+
+function addBlock() {
+  addBlockAt(blocks.length);
+}
+
+function addBlockAt(i) {
+  blocks.splice(i, 0, { type: 'body', size: 'medium', text: '' });
+  renderBlockEditor();
+  setTimeout(() => {
+    const tas = document.querySelectorAll('#block-editor textarea');
+    if (tas[i]) tas[i].focus();
+  }, 50);
+}
+
+function removeBlock(i) {
+  if (blocks.length <= 1) { blocks[i].text = ''; renderBlockEditor(); return; }
+  blocks.splice(i, 1);
+  renderBlockEditor();
+}
+
+function moveBlock(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= blocks.length) return;
+  [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+  renderBlockEditor();
+}
+
+function setBlockType(i, type) {
+  blocks[i].type = type;
+  renderBlockEditor();
+  setTimeout(() => {
+    const tas = document.querySelectorAll('#block-editor textarea');
+    if (tas[i]) tas[i].focus();
+  }, 30);
+}
+
+function setBlockSize(i, size) {
+  blocks[i].size = size;
+  renderBlockEditor();
+  setTimeout(() => {
+    const tas = document.querySelectorAll('#block-editor textarea');
+    if (tas[i]) tas[i].focus();
+  }, 30);
+}
+
+function saveEntry() {
+  const title = document.getElementById('movie-title').value.trim();
+  if (!title) { showToast('Please enter a movie title'); return; }
+
+  const posterUrl = document.getElementById('poster-url').value.trim();
+  const genre = getSelectedGenre();
+  const watchedAt = document.getElementById('watched-date').value || null;
+  const content = JSON.stringify(blocks.filter(b => b.text.trim() || blocks.length === 1));
+
+  const entry = {
+    id: editorId || generateId(),
+    title,
+    posterUrl: posterUrl || null,
+    posterDataUrl: posterUrl ? null : (posterDataUrl || null),
+    content,
+    genre,
+    isPublic,
+    slug: editorId ? (getEntry(editorId)||{}).slug || generateSlug(title) : generateSlug(title),
+    watchedAt,
+    createdAt: editorId ? (getEntry(editorId)||{}).createdAt || new Date().toISOString() : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  upsertEntry(entry);
+  showToast(editorId ? 'Entry updated' : 'Entry saved');
+  navigate('feed');
+}
+
+function deleteEntry() {
+  if (!editorId) return;
+  if (!confirm('Delete this entry?')) return;
+  removeEntry(editorId);
+  showToast('Entry deleted');
+  navigate('feed');
+}
+
+// ─── Log View ────────────────────────────────────────────────────
+function renderLog(slug) {
+  const e = getEntryBySlug(slug);
+  const hero = document.getElementById('log-hero');
+  const content = document.getElementById('log-content');
+
+  if (!e) {
+    hero.innerHTML = '<div class="log-hero-placeholder"></div>';
+    content.innerHTML = '<div style="color:var(--muted);text-align:center;padding:40px 0;">Entry not found.</div>';
+    return;
+  }
+
+  const posterSrc = e.posterUrl || e.posterDataUrl;
+  hero.innerHTML = `
+    ${posterSrc ? `<img src="${esc(posterSrc)}" alt="Poster">` : '<div class="log-hero-placeholder"></div>'}
+    <div class="log-hero-overlay">
+      ${e.genre ? `<div class="log-genre-badge">${esc(e.genre)}</div>` : ''}
+      <div class="log-title">${esc(e.title)}</div>
+      ${e.watchedAt ? `<div class="log-date">${fmtDate(e.watchedAt)}</div>` : ''}
+    </div>
+  `;
+
+  document.getElementById('log-share-btn').dataset.slug = slug;
+
+  // Edit button (floating)
+  const existing = document.getElementById('log-edit-float');
+  if (existing) existing.remove();
+  const editBtn = document.createElement('button');
+  editBtn.id = 'log-edit-float';
+  editBtn.style.cssText = 'position:absolute;top:16px;right:100px;padding:8px 14px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);border-radius:99px;color:#fff;cursor:pointer;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-family:var(--font-sans);';
+  editBtn.textContent = 'Edit';
+  editBtn.onclick = () => openEditor(e.id);
+  document.querySelector('#view-log > div').appendChild(editBtn);
+
+  const parsed = (() => { try { return JSON.parse(e.content || '[]'); } catch { return []; } })();
+  content.innerHTML = parsed.map(b =>
+    `<div class="log-block type-${b.type} size-${b.size}">${esc(b.text)}</div>`
+  ).join('');
+
+  // Update back button to go back to feed
+  document.getElementById('log-back-btn').onclick = () => navigate('feed');
+}
+
+function copyLogLink() {
+  const slug = document.getElementById('log-share-btn').dataset.slug;
+  const url = window.location.href.split('#')[0] + '#log/' + slug;
+  navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Link copied!');
+  });
+}
+
+// ─── Stats ──────────────────────────────────────────────────────
+function renderStats() {
+  const entries = loadEntries();
+  const total = entries.length;
+  const publicCount = entries.filter(e => e.isPublic).length;
+  const genreMap = {};
+  entries.forEach(e => { if (e.genre) genreMap[e.genre] = (genreMap[e.genre]||0)+1; });
+  const sorted = Object.entries(genreMap).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+
+  document.getElementById('stats-body').innerHTML = `
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-num">${total}</div>
+        <div class="stat-lbl">Films Logged</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">${publicCount}</div>
+        <div class="stat-lbl">Public</div>
+      </div>
+    </div>
+    ${sorted.length ? `
+      <div class="section-label" style="margin-bottom:16px;">By Genre</div>
+      ${sorted.map(([g,c]) => `
+        <div class="genre-stat">
+          <div class="genre-stat-header">
+            <span class="genre-stat-name">${esc(g)}</span>
+            <span class="genre-stat-count">${c}</span>
+          </div>
+          <div class="genre-bar-track">
+            <div class="genre-bar-fill" style="width:${Math.round(c/max*100)}%"></div>
+          </div>
+        </div>
+      `).join('')}
+    ` : '<div style="color:var(--muted);font-size:14px;">Log some films to see stats.</div>'}
+  `;
+}
+
+// ─── Hash Routing ────────────────────────────────────────────────
+function handleHash() {
+  const hash = location.hash.slice(1) || 'feed';
+  if (hash.startsWith('log/')) {
+    navigate('log', hash.slice(4));
+  } else if (hash === 'stats') {
+    navigate('stats');
+  } else if (hash === 'new') {
+    openEditor(null);
+  } else if (hash.startsWith('edit/')) {
+    openEditor(hash.slice(5));
+  } else {
+    navigate('feed');
+  }
+}
+
+window.addEventListener('hashchange', handleHash);
+
+// Override navigate to update hash
+const _nav = navigate;
+window.navigate = function(view, param) {
+  const map = { feed: '#feed', editor: param ? '#edit/'+param : '#new', log: '#log/'+(param||''), stats: '#stats' };
+  if (history.pushState) {
+    history.pushState(null, '', map[view] || '#feed');
+  } else {
+    location.hash = map[view] || '#feed';
+  }
+  _nav(view, param);
+};
+
+// Re-wire openEditor to use hash nav
+window.openEditor = function(id) {
+  editorId = id;
+  blocks = [];
+  isPublic = false;
+  posterDataUrl = null;
+
+  document.getElementById('editor-title-bar').textContent = id ? 'Edit Entry' : 'New Entry';
+  document.getElementById('delete-btn-wrap').style.display = id ? 'block' : 'none';
+  document.getElementById('poster-url').value = '';
+  document.getElementById('movie-title').value = '';
+  document.getElementById('watched-date').value = '';
+
+  if (id) {
+    const e = getEntry(id);
+    if (e) {
+      document.getElementById('poster-url').value = e.posterUrl || '';
+      document.getElementById('movie-title').value = e.title || '';
+      document.getElementById('watched-date').value = e.watchedAt ? e.watchedAt.slice(0,10) : '';
+      blocks = e.content ? JSON.parse(e.content) : [];
+      isPublic = !!e.isPublic;
+      posterDataUrl = e.posterDataUrl || null;
+    }
+  }
+
+  if (!blocks.length) blocks = [{ type: 'heading', size: 'large', text: '' }];
+
+  renderGenreSelect(id ? (getEntry(id)||{}).genre : null);
+  renderToggle();
+  renderBlockEditor();
+  updatePosterPreview();
+
+  if (history.pushState) {
+    history.pushState(null, '', id ? '#edit/' + id : '#new');
+  }
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('.bottom-nav').style.display = '';
+  document.getElementById('nav-new').classList.add('active');
+  document.getElementById('view-editor').classList.add('active');
+  window.scrollTo(0, 0);
+};
+
+// ─── Init ────────────────────────────────────────────────────────
+handleHash();
+</script>
+</body>
+</html>
