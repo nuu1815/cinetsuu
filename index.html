@@ -9,164 +9,115 @@
             --bg: #000000;
             --card-bg: #111111;
             --text: #ffffff;
-            --accent: #0044ff; /* キタノ・ブルーをイメージ */
+            --accent: #0044ff; /* キタノ・ブルー */
             --border: #333333;
+            --danger: #990000;
         }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            margin: 0;
-            line-height: 1.6;
-        }
-
+        body { background-color: var(--bg); color: var(--text); font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; line-height: 1.6; }
+        
         header {
-            padding: 20px;
+            padding: 15px 20px;
             border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 15px;
             position: sticky;
             top: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             backdrop-filter: blur(10px);
             z-index: 100;
         }
 
-        .logo h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; }
-        .logo span { font-size: 0.8rem; color: #888; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; }
+        .logo h1 { margin: 0; font-size: 1.4rem; letter-spacing: 2px; }
+        .logo span { font-size: 0.7rem; color: #888; }
 
-        .nav-buttons button {
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 5px 15px;
+        /* お嬢様こだわりのデカボタン */
+        .main-log-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            letter-spacing: 2px;
             cursor: pointer;
-            margin-left: 10px;
-            font-size: 0.8rem;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 1rem;
+            transition: opacity 0.2s;
         }
+        .main-log-btn:hover { opacity: 0.8; }
 
-        .nav-buttons button:hover { border-color: var(--text); }
+        .nav-sub-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .nav-sub-buttons button { background: none; border: 1px solid var(--border); color: #888; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; }
 
         main { max-width: 800px; margin: 0 auto; padding: 20px; }
 
-        /* フォーム部分 */
-        .log-form {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 40px;
-            display: none; /* 初期は非表示 */
-        }
-
+        /* フォーム */
+        .log-form { background: var(--card-bg); padding: 20px; border: 1px solid var(--accent); border-radius: 8px; margin-bottom: 40px; display: none; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-size: 0.9rem; color: #ccc; }
-        input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            background: #222;
-            border: 1px solid var(--border);
-            color: #fff;
-            box-sizing: border-box;
-        }
+        label { display: block; margin-bottom: 5px; font-size: 0.8rem; color: #ccc; }
+        input, textarea, select { width: 100%; padding: 10px; background: #222; border: 1px solid var(--border); color: #fff; box-sizing: border-box; border-radius: 4px; }
 
-        .star-rating { color: #ffd700; font-size: 1.2rem; cursor: pointer; }
-
-        /* フィード部分 */
-        .movie-card {
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border);
-            padding: 20px 0;
-            display: flex;
-            gap: 20px;
-        }
-
-        .movie-poster { width: 120px; height: 180px; object-fit: cover; background: #222; border-radius: 4px; }
+        /* フィード */
+        .movie-card { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 20px 0; display: flex; gap: 20px; position: relative; }
+        .movie-poster { width: 100px; height: 150px; object-fit: cover; background: #222; border-radius: 4px; flex-shrink: 0; }
         .movie-info { flex: 1; }
-        .movie-title { font-size: 1.3rem; margin: 0; }
-        .original-title { color: #888; font-size: 0.9rem; }
+        .movie-title { font-size: 1.2rem; margin: 0; padding-right: 60px; }
+        .original-title { color: #666; font-size: 0.8rem; }
         .movie-meta { font-size: 0.8rem; color: var(--accent); margin: 5px 0; }
-        .movie-notes { margin-top: 10px; font-size: 0.95rem; }
+        .movie-notes { margin-top: 8px; font-size: 0.9rem; white-space: pre-wrap; }
 
-        /* 利用規約モーダル */
-        #terms-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            overflow-y: auto;
-            padding: 40px 20px;
-        }
-        .modal-content { max-width: 700px; margin: 0 auto; background: #111; padding: 30px; border: 1px solid var(--border); }
+        /* 編集・削除ボタン */
+        .card-actions { position: absolute; top: 20px; right: 0; display: flex; gap: 8px; }
+        .edit-btn, .delete-btn { background: none; border: 1px solid var(--border); color: #666; font-size: 0.7rem; padding: 2px 6px; cursor: pointer; }
+        .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .delete-btn:hover { border-color: var(--danger); color: var(--danger); }
 
-        footer { text-align: center; padding: 40px; font-size: 0.7rem; color: #666; border-top: 1px solid var(--border); }
+        #terms-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; overflow-y: auto; padding: 40px 20px; }
+        .modal-content { max-width: 600px; margin: 0 auto; background: #111; padding: 25px; border: 1px solid var(--border); font-size: 0.9rem; }
+
+        footer { text-align: center; padding: 40px; font-size: 0.7rem; color: #444; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="logo">
-        <h1 id="site-title">シネツウ <span>MOVIE LOG</span></h1>
+    <div class="header-top">
+        <div class="logo">
+            <h1 id="site-title">シネツウ <span>MOVIE LOG</span></h1>
+        </div>
+        <div class="nav-sub-buttons">
+            <button onclick="showTerms()" id="btn-terms">TERMS</button>
+            <button onclick="toggleLang()" id="btn-lang">EN</button>
+        </div>
     </div>
-    <div class="nav-buttons">
-        <button onclick="toggleForm()" id="btn-log">LOG</button>
-        <button onclick="showTerms()" id="btn-terms">TERMS</button>
-        <button onclick="toggleLang()" id="btn-lang">EN</button>
-    </div>
+    <button class="main-log-btn" onclick="toggleForm()" id="btn-log-main">記録する / LOG MOVIE</button>
 </header>
 
 <main>
     <section id="log-section" class="log-form">
-        <h2 id="form-title">映画を記録する</h2>
-        <div class="form-group">
-            <label id="lbl-title">タイトル / Title</label>
-            <input type="text" id="title" placeholder="例: ソナチネ">
-        </div>
-        <div class="form-group">
-            <label id="lbl-original">原題 / Original Title</label>
-            <input type="text" id="orig-title">
-        </div>
-        <div class="form-group">
-            <label id="lbl-year">制作年 / Year</label>
-            <input type="number" id="year" placeholder="1993">
-        </div>
-        <div class="form-group">
-            <label id="lbl-image">画像URL / Image URL</label>
-            <input type="text" id="image-url" placeholder="https://...">
-        </div>
-        <div class="form-group">
-            <label id="lbl-rating">評価 / Rating</label>
+        <h2 id="form-title" style="margin-top:0">映画を記録する</h2>
+        <input type="hidden" id="edit-id"> <div class="form-group"><label id="lbl-title">タイトル</label><input type="text" id="title"></div>
+        <div class="form-group"><label id="lbl-original">原題</label><input type="text" id="orig-title"></div>
+        <div class="form-group"><label id="lbl-year">制作年</label><input type="number" id="year"></div>
+        <div class="form-group"><label id="lbl-image">画像URL</label><input type="text" id="image-url"></div>
+        <div class="form-group"><label id="lbl-rating">評価</label>
             <select id="rating">
-                <option value="5">★★★★★</option>
-                <option value="4">★★★★☆</option>
-                <option value="3">★★★☆☆</option>
-                <option value="2">★★☆☆☆</option>
-                <option value="1">★☆☆☆☆</option>
+                <option value="5">★★★★★</option><option value="4">★★★★☆</option><option value="3">★★★☆☆</option><option value="2">★★☆☆☆</option><option value="1">★☆☆☆☆</option>
             </select>
         </div>
-        <div class="form-group">
-            <label id="lbl-notes">感想 / Notes</label>
-            <textarea id="notes" rows="4"></textarea>
-        </div>
-        <button onclick="saveMovie()" style="background: var(--accent); color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%;" id="btn-save">保存 / SAVE</button>
+        <div class="form-group"><label id="lbl-notes">感想</label><textarea id="notes" rows="4"></textarea></div>
+        <button onclick="saveMovie()" style="background: var(--accent); color: white; border: none; padding: 12px; cursor: pointer; width: 100%; border-radius: 4px;" id="btn-save">保存 / SAVE</button>
     </section>
 
     <div id="movie-feed"></div>
 </main>
 
-<div id="terms-modal">
-    <div class="modal-content">
-        <div id="terms-text"></div>
-        <button onclick="closeTerms()" style="margin-top: 20px; width: 100%; padding: 10px; cursor: pointer;">CLOSE</button>
-    </div>
-</div>
+<div id="terms-modal"><div class="modal-content"><div id="terms-text"></div><button onclick="closeTerms()" style="margin-top: 20px; width: 100%; padding: 10px; cursor: pointer; background:#222; color:#fff; border:1px solid var(--border);">CLOSE</button></div></div>
 
-<footer>
-    <p>© 2026 cinetsuu. All rights reserved.</p>
-    <p id="footer-rights">当サイトに掲載されているレビューおよび画像の著作権は、各権利所有者に帰属します。</p>
-</footer>
+<footer><p>© 2026 cinetsuu. All rights reserved.</p><p id="footer-rights"></p></footer>
 
 <script>
     let currentLang = 'ja';
@@ -174,86 +125,110 @@
 
     const translations = {
         ja: {
-            siteTitle: "シネツウ",
-            btnLog: "記録する",
-            btnTerms: "利用規約",
-            formTitle: "映画を記録する",
-            btnSave: "保存する",
+            siteTitle: "シネツウ", btnLogMain: "映画を記録する", btnTerms: "利用規約", formTitle: "映画を記録する", btnSave: "保存する",
+            lblTitle: "タイトル", lblOrig: "原題", lblYear: "制作年", lblImg: "画像URL", lblRate: "評価", lblNotes: "感想",
             footer: "当サイトに掲載されているレビューおよび画像の著作権は、各権利所有者に帰属します。",
-            terms: `<h2>利用規約</h2>
-                    <p>1. 本サイトは個人的な映画鑑賞記録を目的としています。</p>
-                    <p>2. 掲載されている画像の著作権は各映画製作会社、配給会社等に帰属します。権利者からの削除要請があった場合、速やかに対応いたします。</p>
-                    <p>3. ユーザーが投稿した感想の著作権は投稿者に帰属しますが、本サイト内での表示に使用されることに同意するものとします。</p>
-                    <p>4. 他者への誹謗中傷や公序良俗に反する内容の投稿を禁止します。</p>
-                    <p>免責事項：本サイトの利用により生じたいかなる損害についても、管理者は責任を負いません。</p>`
+            terms: `<h2>利用規約</h2><p>1. 本サイトは個人的な映画鑑賞記録を目的としています。</p><p>2. 掲載されている画像の著作権は各映画製作会社等に帰属します。要請があれば速やかに削除いたします。</p><p>3. 投稿内容の著作権は投稿者に帰属します。</p>`
         },
         en: {
-            siteTitle: "cinetsuu",
-            btnLog: "LOG",
-            btnTerms: "TERMS",
-            formTitle: "Log a Movie",
-            btnSave: "SAVE",
-            footer: "The copyright of reviews and images on this site belongs to their respective owners.",
-            terms: `<h2>Terms of Service</h2>
-                    <p>1. This site is for personal movie logging purposes only.</p>
-                    <p>2. Image copyrights belong to their respective film studios/distributors. We will promptly remove content upon request from rights holders.</p>
-                    <p>3. Review copyrights belong to the author, but you agree to their display on this site.</p>
-                    <p>4. Prohibit posts that are defamatory or violate public order and morals.</p>
-                    <p>Disclaimer: The administrator is not responsible for any damage caused by using this site.</p>`
+            siteTitle: "cinetsuu", btnLogMain: "LOG MOVIE", btnTerms: "TERMS", formTitle: "Log a Movie", btnSave: "SAVE",
+            lblTitle: "Title", lblOrig: "Original Title", lblYear: "Year", lblImg: "Image URL", lblRate: "Rating", lblNotes: "Notes",
+            footer: "The copyright of content on this site belongs to their respective owners.",
+            terms: `<h2>Terms of Service</h2><p>1. Personal use only.</p><p>2. Image copyrights belong to their owners.</p><p>3. Review copyrights belong to the author.</p>`
         }
     };
 
-    function toggleLang() {
-        currentLang = currentLang === 'ja' ? 'en' : 'ja';
-        render();
-    }
-
+    function toggleLang() { currentLang = currentLang === 'ja' ? 'en' : 'ja'; render(); }
     function toggleForm() {
         const form = document.getElementById('log-section');
-        form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        if(form.style.display === 'block') {
+            form.style.display = 'none';
+            document.getElementById('edit-id').value = ''; // 編集モード解除
+            document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+        } else {
+            form.style.display = 'block';
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
     }
-
     function showTerms() { document.getElementById('terms-modal').style.display = 'block'; }
     function closeTerms() { document.getElementById('terms-modal').style.display = 'none'; }
 
     function saveMovie() {
-        const movie = {
-            id: Date.now(),
+        const editId = document.getElementById('edit-id').value;
+        const movieData = {
+            id: editId ? parseInt(editId) : Date.now(),
             title: document.getElementById('title').value,
             origTitle: document.getElementById('orig-title').value,
             year: document.getElementById('year').value,
             image: document.getElementById('image-url').value,
-            rating: document.getElementById('rating').value,
+            rating: parseInt(document.getElementById('rating').value),
             notes: document.getElementById('notes').value
         };
-        movies.unshift(movie);
+
+        if(editId) {
+            movies = movies.map(m => m.id === movieData.id ? movieData : m);
+        } else {
+            movies.unshift(movieData);
+        }
+        
         localStorage.setItem('cinetsuu_logs', JSON.stringify(movies));
         render();
         toggleForm();
-        // フォームクリア
-        document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+    }
+
+    function editMovie(id) {
+        const m = movies.find(movie => movie.id === id);
+        if(!m) return;
+        document.getElementById('edit-id').value = m.id;
+        document.getElementById('title').value = m.title;
+        document.getElementById('orig-title').value = m.origTitle;
+        document.getElementById('year').value = m.year;
+        document.getElementById('image-url').value = m.image;
+        document.getElementById('rating').value = m.rating;
+        document.getElementById('notes').value = m.notes;
+        document.getElementById('log-section').style.display = 'block';
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function deleteMovie(id) {
+        if(confirm(currentLang === 'ja' ? '削除してもよろしいですか？' : 'Are you sure?')) {
+            movies = movies.filter(m => m.id !== id);
+            localStorage.setItem('cinetsuu_logs', JSON.stringify(movies));
+            render();
+        }
     }
 
     function render() {
         const t = translations[currentLang];
         document.getElementById('site-title').innerHTML = `${t.siteTitle} <span>MOVIE LOG</span>`;
-        document.getElementById('btn-log').innerText = t.btnLog;
+        document.getElementById('btn-log-main').innerText = t.btnLogMain;
         document.getElementById('btn-terms').innerText = t.btnTerms;
         document.getElementById('form-title').innerText = t.formTitle;
         document.getElementById('btn-save').innerText = t.btnSave;
         document.getElementById('footer-rights').innerText = t.footer;
         document.getElementById('terms-text').innerHTML = t.terms;
         document.getElementById('btn-lang').innerText = currentLang === 'ja' ? 'EN' : 'JP';
+        
+        document.getElementById('lbl-title').innerText = t.lblTitle;
+        document.getElementById('lbl-original').innerText = t.lblOrig;
+        document.getElementById('lbl-year').innerText = t.lblYear;
+        document.getElementById('lbl-image').innerText = t.lblImg;
+        document.getElementById('lbl-rating').innerText = t.lblRate;
+        document.getElementById('lbl-notes').innerText = t.lblNotes;
 
         const feed = document.getElementById('movie-feed');
         feed.innerHTML = movies.map(m => `
             <div class="movie-card">
-                <img src="${m.image || 'https://via.placeholder.com/120x180?text=No+Image'}" class="movie-poster">
+                <img src="${m.image || 'https://via.placeholder.com/100x150?text=No+Image'}" class="movie-poster">
                 <div class="movie-info">
                     <h3 class="movie-title">${m.title}</h3>
-                    <div class="original-title">${m.origTitle}</div>
-                    <div class="movie-meta">${m.year} | ${'★'.repeat(m.rating)}${'☆'.repeat(5-m.rating)}</div>
+                    <div class="original-title">${m.origTitle || ''}</div>
+                    <div class="movie-meta">${m.year || ''} | ${'★'.repeat(m.rating)}${'☆'.repeat(5-m.rating)}</div>
                     <div class="movie-notes">${m.notes}</div>
+                </div>
+                <div class="card-actions">
+                    <button class="edit-btn" onclick="editMovie(${m.id})">EDIT</button>
+                    <button class="delete-btn" onclick="deleteMovie(${m.id})">DEL</button>
                 </div>
             </div>
         `).join('');
